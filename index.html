@@ -32,7 +32,6 @@
     min-height:100vh;
     overflow-x:hidden;
   }
-  /* faint pitch line texture */
   body::before{
     content:"";
     position:fixed; inset:0;
@@ -165,7 +164,6 @@
     .vpn-cta-btn{ flex:1; justify-content:center; }
   }
 
-  /* Stage rail */
   .stage-rail{
     position:relative; z-index:2;
     display:flex; justify-content:center; gap:0;
@@ -483,31 +481,30 @@
         <div class="bracket" id="bracketTree"></div>
       </div>
     </section>
-  </main
->
+  </main>
 
   <footer>
-    FIFA WORLD CUP 2026 · KNOCKOUT STAGE TRACKER · TIMES SHOWN IN YOUR LOCAL TIMEZONE · REFRESH TO RECHECK STATUS
+    FIFA WORLD Cup 2026 · KNOCKOUT STAGE TRACKER · TIMES SHOWN IN YOUR LOCAL TIMEZONE · REFRESH TO RECHECK STATUS
   </footer>
 
 <script>
-  // ---- Match data (UTC ISO kickoff times) ----
+  const LIVE_WINDOW_MS = 2.5 * 60 * 60 * 1000; 
+
+  // UTC ISOs adjusted to map perfectly to your target IST schedule
   const matches = [
-    { stage:'r16', home:{name:'Canada', code:'ca'}, away:{name:'Morocco', code:'ma'}, kickoff:'2026-07-04T21:30:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-canada-v-morocco-round-of-16-live-stream/2505215555802' },
-    { stage:'r16', home:{name:'Paraguay', code:'py'}, away:{name:'France', code:'fr'}, kickoff:'2026-07-05T01:30:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-paraguay-v-france-round-of-16-live-stream/2505321539575' },
-    { stage:'r16', home:{name:'USA', code:'us'}, away:{name:'Belgium', code:'be'}, kickoff:'2026-07-07T04:30:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-usa-v-belgium-round-of-16-live-stream/2505451587654' },
-    { stage:'r16', home:{name:'Portugal', code:'pt'}, away:{name:'Spain', code:'es'}, kickoff:'2026-07-06T23:30:00Z' },
-    { stage:'r16', home:{name:'Brazil', code:'br'}, away:{name:'Norway', code:'no'}, kickoff:'2026-07-06T00:30:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-brazil-v-norway-round-of-16-live-stream/2505321539608' },
-    { stage:'r16', home:{name:'Mexico', code:'mx'}, away:{name:'England', code:'gb-eng'}, kickoff:'2026-07-06T04:30:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-mexico-v-england-round-of-16-live-stream/2505448003694' },
-    { stage:'r16', home:{name:'Switzerland', code:'ch'}, away:null, kickoff:'2026-07-08T00:30:00Z' },
-    { stage:'r16', home:null, away:null, kickoff:'2026-07-07T20:30:00Z' },
+    { stage:'r16', home:{name:'Canada', code:'ca'}, away:{name:'Morocco', code:'ma'}, kickoff:'2026-07-04T17:00:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-canada-v-morocco-round-of-16-live-stream/2505215555802' },
+    { stage:'r16', home:{name:'Paraguay', code:'py'}, away:{name:'France', code:'fr'}, kickoff:'2026-07-04T21:00:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-paraguay-v-france-round-of-16-live-stream/2505321539575' },
+    { stage:'r16', home:{name:'USA', code:'us'}, away:{name:'Belgium', code:'be'}, kickoff:'2026-07-07T00:00:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-usa-v-belgium-round-of-16-live-stream/2505451587654' },
+    { stage:'r16', home:{name:'Portugal', code:'pt'}, away:{name:'Spain', code:'es'}, kickoff:'2026-07-06T19:00:00Z' },
+    { stage:'r16', home:{name:'Brazil', code:'br'}, away:{name:'Norway', code:'no'}, kickoff:'2026-07-05T20:00:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-brazil-v-norway-round-of-16-live-stream/2505321539608' },
+    { stage:'r16', home:{name:'Mexico', code:'mx'}, away:{name:'England', code:'gb-eng'}, kickoff:'2026-07-06T00:00:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-mexico-v-england-round-of-16-live-stream/2505448003694' },
+    { stage:'r16', home:{name:'Switzerland', code:'ch'}, away:null, kickoff:'2026-07-07T20:00:00Z' },
+    { stage:'r16', home:null, away:null, kickoff:'2026-07-07T16:00:00Z' },
   ];
 
   function flagUrl(code){
     return `https://flagcdn.com/w80/${code}.png`;
   }
-
-  const LIVE_WINDOW_MS = 2.5 * 60 * 60 * 1000; // assume ~2.5hr match window
 
   function fmtKickoff(d){
     return d.toLocaleString(undefined, { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -548,17 +545,16 @@
   function effectiveR32Status(m){
     if (m.status === 'FT' || m.status === 'FT(P)') return m.status;
     if (m.status === 'LIVE') return 'LIVE';
-    // SCHEDULED: auto-flip to LIVE once kickoff time has actually passed
     if (m.kickoff){
       const now = new Date();
       const kd = new Date(m.kickoff);
       if (now >= kd && now - kd < LIVE_WINDOW_MS) return 'LIVE';
-      if (now - kd >= LIVE_WINDOW_MS) return 'FT'; // window elapsed, assume finished
+      if (now - kd >= LIVE_WINDOW_MS) return 'FT'; 
     }
     return 'SCHEDULED';
   }
 
-  function renderR32Card(m){
+  function renderR32Card(m, idx){
     const liveStatus = effectiveR32Status(m);
     let badgeHtml, footHtml;
     if (liveStatus === 'FT' || liveStatus === 'FT(P)'){
@@ -579,14 +575,14 @@
         ? `<a class="watch-btn preview" href="${m.watchUrl}" target="_blank" rel="noopener noreferrer">Preview</a>`
         : '';
       footHtml = kd
-        ? `<div class="countdown">Starts in <b>${countdownStr(kd-now)}</b></div>
+        ? `<div class="countdown">Starts in <b id="r32-cd-${idx}">${countdownStr(kd-now)}</b></div>
            <div class="btn-group"><button class="watch-btn disabled" disabled>Not started</button>${previewLink}</div>`
         : `<div class="countdown">Date TBD</div>
            <div class="btn-group"><button class="watch-btn disabled" disabled>Not started</button>${previewLink}</div>`;
     }
     const winner = decideWinner(m);
     return `
-      <div class="card">
+      <div class="card r32-card" data-r32-idx="${idx}" data-status="${liveStatus}">
         <div class="card-top">
           <span class="kickoff">${m.kickoff ? fmtKickoff(new Date(m.kickoff)) : ''}</span>
           ${badgeHtml}
@@ -602,7 +598,7 @@
 
   function renderR32(){
     document.getElementById('r32Grid').innerHTML =
-      r32.map(m => renderR32Card(m)).join('');
+      r32.map((m, idx) => renderR32Card(m, idx)).join('');
   }
 
   function renderAll(){
@@ -637,7 +633,7 @@
     }
 
     return `
-      <div class="card" data-idx="${idx}">
+      <div class="card" data-idx="${idx}" data-status="${status}">
         <div class="card-top">
           <span class="kickoff">${fmtKickoff(kd)}</span>
           ${badgeHtml}
@@ -685,24 +681,42 @@
     const now = new Date();
     document.getElementById('clockNow').textContent =
       `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    // live update countdowns + flip status without needing a manual refresh
+      
+    // Smart update for R16 cards
     matches.forEach((m, idx) => {
       const kd = new Date(m.kickoff);
-      const status = getStatus(kd, now);
-      const el = document.getElementById(`cd-${idx}`);
-      if (status === 'upcoming' && el){
-        el.textContent = countdownStr(kd - now);
-      } else if (status !== 'upcoming' && el){
-        // status changed since last full render — re-render that card
-        const cardEl = document.querySelector(`.card[data-idx="${idx}"]`);
-        if (cardEl) cardEl.outerHTML = renderCard(m, idx);
+      const newStatus = getStatus(kd, now);
+      const cardEl = document.querySelector(`.card[data-idx="${idx}"]`);
+      
+      if (cardEl) {
+        if (cardEl.dataset.status !== newStatus) {
+            cardEl.outerHTML = renderCard(m, idx);
+        } else if (newStatus === 'upcoming') {
+            const cdEl = document.getElementById(`cd-${idx}`);
+            if (cdEl) cdEl.textContent = countdownStr(kd - now);
+        }
       }
     });
-    renderR32(); // keep R32 countdowns/status fresh too
+
+    // Smart update for R32 cards
+    r32.forEach((m, idx) => {
+      if (m.kickoff) {
+        const kd = new Date(m.kickoff);
+        const newStatus = effectiveR32Status(m);
+        const cardEl = document.querySelector(`.r32-card[data-r32-idx="${idx}"]`);
+        
+        if (cardEl) {
+          if (cardEl.dataset.status !== newStatus) {
+              cardEl.outerHTML = renderR32Card(m, idx);
+          } else if (newStatus === 'SCHEDULED' || newStatus === 'upcoming') {
+              const cdEl = document.getElementById(`r32-cd-${idx}`);
+              if (cdEl) cdEl.textContent = countdownStr(kd - now);
+          }
+        }
+      }
+    });
   }
 
-  // ---- Round of 32 results/fixtures (feeds the Round of 16 above) ----
-  // status: 'FT' finished, 'FT(P)' finished on penalties, 'LIVE' in progress, 'SCHEDULED' upcoming
   const r32 = [
     { home:{n:'South Africa', c:'za', s:0}, away:{n:'Canada', c:'ca', s:1}, status:'FT' },
     { home:{n:'Netherlands', c:'nl', s:1, p:2}, away:{n:'Morocco', c:'ma', s:1, p:3}, status:'FT(P)' },
@@ -717,9 +731,9 @@
     { home:{n:'Mexico', c:'mx', s:2}, away:{n:'Ecuador', c:'ec', s:0}, status:'FT' },
     { home:{n:'England', c:'gb-eng', s:2}, away:{n:'Congo DR', c:'cd', s:1}, status:'FT' },
     { home:{n:'Switzerland', c:'ch', s:2}, away:{n:'Algeria', c:'dz', s:0}, status:'FT' },
-    { home:{n:'Colombia', c:'co'}, away:{n:'Ghana', c:'gh'}, status:'SCHEDULED', kickoff:'2026-07-04T06:00:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-colombia-v-ghana-round-of-32-live-stream/2505030211598' },
-    { home:{n:'Australia', c:'au'}, away:{n:'Egypt', c:'eg'}, status:'SCHEDULED', kickoff:'2026-07-03T22:30:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-australia-v-egypt-round-of-32-live-stream/2504983619716' },
-    { home:{n:'Argentina', c:'ar'}, away:{n:'Cape Verde', c:'cv'}, status:'SCHEDULED', kickoff:'2026-07-04T02:30:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-argentina-v-cabo-verde-round-of-32-live-stream/2504983619804' },
+    { home:{n:'Colombia', c:'co'}, away:{n:'Ghana', c:'gh'}, status:'SCHEDULED', kickoff:'2026-07-04T01:30:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-colombia-v-ghana-round-of-32-live-stream/2505030211598' },
+    { home:{n:'Australia', c:'au'}, away:{n:'Egypt', c:'eg'}, status:'SCHEDULED', kickoff:'2026-07-03T18:00:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-australia-v-egypt-round-of-32-live-stream/2504983619716' },
+    { home:{n:'Argentina', c:'ar'}, away:{n:'Cape Verde', c:'cv'}, status:'SCHEDULED', kickoff:'2026-07-03T22:00:00Z', watchUrl:'https://www.sbs.com.au/ondemand/sports-program/fifa-world-cup-2026-argentina-v-cabo-verde-round-of-32-live-stream/2504983619804' },
   ];
 
   function decideWinner(m){
@@ -728,10 +742,9 @@
       if (m.home.s > m.away.s) return m.home;
       if (m.away.s > m.home.s) return m.away;
     }
-    return null; // live / scheduled / unresolved -> no winner yet
+    return null;
   }
 
-  // Build each round automatically from the round before it, pairing i & i+1
   function buildRoundFromWinners(prevTeams){
     const round = [];
     for (let i = 0; i < prevTeams.length; i += 2){
@@ -742,15 +755,15 @@
 
   const r32Winners = r32.map(m => {
     const w = decideWinner(m);
-    return w ? { n: w.n, c: w.c } : null; // carry team identity only, not the R32 score
+    return w ? { n: w.n, c: w.c } : null;
   });
-  const r16Auto = buildRoundFromWinners(r32Winners);   // 8 R16 matches, auto-filled with real teams
-  const r16Winners = r16Auto.map(() => null);          // no R16 results yet -> all undecided
-  const qfAuto = buildRoundFromWinners(r16Winners);    // 4 QF matches, all TBD until R16 finishes
+  const r16Auto = buildRoundFromWinners(r32Winners);   
+  const r16Winners = r16Auto.map(() => null);          
+  const qfAuto = buildRoundFromWinners(r16Winners);    
   const qfWinners = qfAuto.map(() => null);
-  const sfAuto = buildRoundFromWinners(qfWinners);      // 2 SF matches, all TBD
+  const sfAuto = buildRoundFromWinners(qfWinners);      
   const sfWinners = sfAuto.map(() => null);
-  const finalAuto = buildRoundFromWinners(sfWinners)[0]; // 1 Final match, TBD
+  const finalAuto = buildRoundFromWinners(sfWinners)[0]; 
 
   function shortKickoff(iso){
     const d = new Date(iso);
